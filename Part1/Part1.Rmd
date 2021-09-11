@@ -74,6 +74,7 @@ library(bayesplot)
 library(tidybayes)
 library(brms)
 library(ggplot2)
+library(DT)
 library(RColorBrewer)
 library(haven)
 library(here)
@@ -122,14 +123,17 @@ name: aims
 
 On Github there is a dedicated repository where you'll find:
 
-- the Rmarkdown files for the slides
-- annotated R scripts
+- the Rmarkdown filefor the slides
+
 - saved models from the slides (some take too long to estimate 'live')
+
 - data used for the exercises
 
 <br>
 
 The Github repository can be accessed using the following link:
+
+[https://github.com/Sdemaeyer2/Turku_brms_2021]
 
 <br>
 
@@ -270,7 +274,7 @@ Make a Confidence Interval for the 10.5%:
 
 - Inference:
 
-> In 95% of the samples (of sample size 200) we would get a percentage vampires varying somewhere between 6.25% and 14.75%
+> In 95% of the samples (of sample size 200) we would get a percentage of vampires varying somewhere between 6.25% and 14.75%
 
 ---
 
@@ -606,8 +610,8 @@ and
 $\sigma$
 ]
 
-<i> .UA-blue[
->Please share yor thoughts? What are possible values of  the population average and standard deviation for our example?] </i>
+.UA-blue[
+> .Large[🤔] <i> Please share your thoughts? What are possible values of  the population average and standard deviation for our example?] </i>
 
 ]
 
@@ -679,6 +683,7 @@ data_frame(X, Vague1, Vague2) %>%
 ```
 
 ]
+
 ---
 
 ## Say we have following priors
@@ -859,6 +864,23 @@ Following link brings you to an interactive tool that let's you get the basic id
 https://chi-feng.github.io/mcmc-demo/app.html#HamiltonianMC,standard
 ]
 
+---
+
+## Side-step: conjugate priors
+
+Some prior probability distributions can be <i>'more easely'</i> combined with a certain likelihood!
+
+These are called .SW-greenD[<b>conjugate</b>] priors
+
+<b>PRO: </b>
+
+You can actually analytically calculate the posterior. 
+So: no need for all the sampling and approximation of the posterior.
+
+A list of conjugate likelihood-prior pairs: https://en.wikipedia.org/wiki/Conjugate_prior
+
+<b>BUT: </b>
+><i>"Simplicity comes with a cost! In most real-life examples of inference, the contraint of choosing likelihood-prior conjugate pairs is too restrictive and can lead us to use models that inadequately capture the variability in the data. (Lambert, 2018, p. 209)"
 
 ---
 ## Software
@@ -909,10 +931,9 @@ Very very similar to `lme4` and in line with typical R-style writing up of a mod
 Model <- lmer(
   y ~ x1 + x2 + (1|Group),
   data = Data,
-  
-  
-  
+
   ...
+  
 )
 ```
 ]
@@ -1265,6 +1286,486 @@ Model1_CJ <- brm(
   seed = 1975
 )
 ```
+
+---
+
+## Question 1
+
+```{r}
+Model1_CJ <- readRDS(here("models", "Model1_CJ.RDS"))
+summary(Model1_CJ)
+```
+
+???
+
+Convergence is clearly ok!
+
+---
+
+## Question 1
+
+```{r, fig.width=6, fig.height=6 }
+plot(Model1_CJ)
+```
+---
+
+## Further exploration of hte posterior
+
+Pull the 4000 samples of our parameter values from the posterior with
+
+.UA-red[`posterior_samples()`]
+
+```{r}
+posterior_samples(Model1_CJ) %>%
+  head(10)
+```
+
+.footnote[*with the `head()` function we ask to only show the first 10 rows]
+
+---
+
+## Time to unpack the plotting power of `ggplot2`
+
+First we set a custom theme that makes our plots look 'better'
+
+
+```{r}
+theme_set(theme_linedraw() +
+            theme(text = element_text(family = "Times"),
+                  panel.grid = element_blank()))
+```
+
+
+---
+## Time to unpack the plotting power of `ggplot2`
+
+.pull-left[
+Package .UA-red[`tidybayes`] is a wrapper including functions from .UA-red[`ggdist`] that open a lot of plotting options
+
+.footnotesize[
+
+```{r echo = T, eval = F}
+posterior_samples(Mode1l_CJ) %>%         # Get draws of the posterior
+  select(b_Intercept) %>%                # Only select our Intercept
+  pivot_longer(everything()) %>%         # Rearrange the result to plot
+  ggplot(aes(x = value, y = name)) +     # Let's plot...
+*   stat_pointinterval(.width = .89) +   # 89% CI
+    xlab("marginal posterior")           # Set our x-axis label
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T}
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = name)) +
+    stat_pointinterval(.width = .89) +
+    xlab("marginal posterior")
+```
+]
+
+---
+## Your turn
+
+.center2[
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Make a similar plot for the estimate of the standard deviation
+- With a CI of 80%
+- Interpret the results
+</b>
+]
+]
+
+---
+
+## Solution...
+
+.pull-left[
+.footnotesize[
+
+```{r echo = T, eval = F}
+posterior_samples(Mode1l_CJ) %>%         # Get draws of the posterior
+* select(sigma) %>%                      # Only select sigma
+  pivot_longer(everything()) %>%         # Rearrange the result to plot
+  ggplot(aes(x = value, y = name)) +     # Let's plot...
+*   stat_pointinterval(.width = .80) +   # 80% CI
+    xlab("marginal posterior")           # Set our x-axis label
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T}
+posterior_samples(Model1_CJ) %>%
+  select(sigma) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = name)) +
+    stat_pointinterval(.width = .80) +
+    xlab("marginal posterior")
+```
+]
+
+---
+
+## Another type of plot with some more information in it
+
+Let's use .UA-red[`stat_interval()`] from the `ggdist` package
+.pull-left[
+.scriptsize[
+
+```{r echo = T, eval = F}
+posterior_samples(Model1_CJ) %>%  
+  select(b_Intercept) %>%               
+  ggplot(aes(x = b_Intercept, y = 0)) +             
+*  stat_interval(
+*    .width = c(.95,.90,.50)   # The CI's to plot 
+*    ) + 
+   xlab("marginal posterior") + 
+   scale_y_continuous(   # No y-axis information
+     NULL, 
+     breaks = NULL
+     ) +
+   scale_color_brewer()
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T, fig.width = 6, fig.height = 6}
+posterior_samples(Model1_CJ) %>%  
+  select(b_Intercept) %>%               
+  ggplot(aes(x = b_Intercept, y = 0)) +                 
+   stat_interval(
+     .width = c(.95,.90,.50)
+     ) +
+   xlab("marginal posterior") + 
+   scale_y_continuous(
+     NULL, 
+     breaks = NULL) +
+   scale_color_brewer()
+```
+]
+
+---
+
+## Your turn
+
+.center2[
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Make a similar plot for the estimate of the standard deviation
+- With a CI of 50%, 80%, 89%, 95% 
+</b>
+]
+]
+---
+
+## Solution
+
+.pull-left[
+.scriptsize[
+
+```{r echo = T, eval = F}
+posterior_samples(Model1_CJ) %>%  
+  select(sigma) %>%               
+  ggplot(aes(x = sigma, y = 0)) +             
+*  stat_interval(
+*    .width = c(.95, .89,.80,.50)   # The CI's to plot 
+*    ) + 
+   xlab("marginal posterior") + 
+   scale_y_continuous(  
+     NULL, 
+     breaks = NULL
+     ) +
+   scale_color_brewer()
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T, fig.width = 6, fig.height = 6}
+posterior_samples(Model1_CJ) %>%  
+  select(sigma) %>%               
+  ggplot(aes(x = sigma, y = 0)) +                 
+   stat_interval(
+     .width = c(.95,.89,.80,.50)
+     ) +
+   xlab("marginal posterior") + 
+   scale_y_continuous(
+     NULL, 
+     breaks = NULL) +
+   scale_color_brewer()
+```
+]
+---
+
+## We can also integrate plots for mu and sigma
+
+And we introduce the .UA-red[`stat_halfeye()`] function of `ggdist`
+.pull-left[
+.footnotesize[
+
+```{r echo = T, eval = F}
+names <- c("mu","sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+*  stat_halfeye(.width = .89, normalize = "panels") +
+   scale_y_continuous(NULL, breaks = NULL) +
+   xlab("marginal posterior") +
+   facet_wrap(~name, scales = "free")
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T, fig.with = 6, fig.height = 6}
+names <- c("mu","sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(.width = .89, normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+```
+]
+---
+
+## Your turn
+
+.center2[
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Try to replicate the graph
+- But with other CI's (e.g. for 50%, 90% and 95%)
+</b>
+]
+]
+
+---
+
+## Solution
+
+.pull-left[
+.footnotesize[
+
+```{r echo = T, eval = F}
+names <- c("mu","sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+*  stat_halfeye(
+*   .width = c(.50, .90, .95), normalize = "panels") +
+   scale_y_continuous(NULL, breaks = NULL) +
+   xlab("marginal posterior") +
+   facet_wrap(~name, scales = "free")
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T, fig.with = 6, fig.height = 6}
+names <- c("mu","sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(.width = c(.5, .9, .95), normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+```
+]
+
+---
+
+## How to get rid of the log?
+
+We can simply do calculations with our posterior samples! So, we can just use `exp()`:
+
+.pull-left[
+.footnotesize[
+
+```{r echo = T, eval = F}
+names <- c("mu","sigma")
+
+names <- c("mu_log_scale","mu_sec", "sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+* mutate(
+*     mu_sec = exp(b_Intercept)
+* ) %>% 
+
+  # we do the select() again to reorder the columns
+  # this is not super necessary, but then look out
+  # with setting the names of the columns!
+  
+* select(b_Intercept, mu_sec, sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(.width = c(.5, .9, .95), normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+```
+]
+]
+
+.pull-right[
+```{r echo = F, eval = T, fig.with = 6, fig.height = 6}
+names <- c("mu_log_scale","mu_sec", "sigma")
+
+posterior_samples(Model1_CJ) %>%
+  select(b_Intercept,sigma) %>%
+  mutate(
+      mu_sec = exp(b_Intercept)
+  ) %>% 
+  select(b_Intercept, mu_sec, sigma) %>%
+  set_names(names) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(.width = c(.5, .9, .95), normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+```
+]
+
+---
+
+## Question 2
+
+.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+
+A model could look like:
+
+$$\begin{aligned}
+  & log(Time_{i})  \sim N(\mu,\sigma_{e_{i}})\\
+  & \mu = \beta_0 + \beta_1*\text{Right_Text}_{i} + \beta_2*\text{Text_Length}_{i} \\
+\end{aligned}$$
+
+
+```{r}
+load(here("data", "Data_CJ2.Rdata"))
+head(Data_CJ2, 6)
+```
+
+
+---
+
+## Your turn
+
+.center2[
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Try to run the model with `brms`
+- Check model convergence
+- Make one plot to visualise the posteriors for the regression parameters
+</b>
+]
+]
+---
+
+## Solution
+
+```{r, eval = FALSE}
+Model2_CJ <- brm(
+  Dur_Log ~ 1 + Text_Length + Right_Text,
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+---
+
+To do:
+
+Introduce  `bayesplot::mcmc_areas`
+Introduce the concepth of ROPE
+Introduce `brms::hypothesis`
+
+---
+
+## Question 3
+
+.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+
+
+In the previous analyses we neglected that we have multiple observations per person!
+
+
+A mixed effects model could look like:
+
+$$\begin{aligned}
+  & log(Time_{ij})  \sim N(\mu,\sigma_{e_{ij}})\\
+  & \mu = \beta_0 + \beta_1*\text{Right_Text}_{i} + \beta_2*\text{Text_Length}_{i} + \mu_j\\
+  & \mu_j \sim N(0,\sigma_{u_j})
+\end{aligned}$$
+
+
+---
+
+## Solution: adding random term to the model 
+
+```{r, eval = FALSE}
+Model3_CJ <- brm(
+  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic),
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+
+---
+
+- Show the modelling;
+
+- Make plot for random effects
+
+---
+
+- how to tweak the estimation:
+
+  - set number of chains, iterations
+  - set the number of cores to use
+  - change the priors (after visualising the priors used)
+
+---
+
+- posterior-predictive check
+- model comparison with loo cross-validation
+
+---
+
+Test: check whether the difference between Left and Right text differs from person to person!
 
 ---
 class: inverse-blue, center, middle
