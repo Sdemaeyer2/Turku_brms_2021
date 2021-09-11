@@ -1,0 +1,103 @@
+---
+title: " `brms` workshop: compendium"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r setup, include=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r}
+library(tidyverse)
+library(brms)
+library(tidybayes)
+```
+
+This document contains the code used during the workshop, so you can play along, copy some code, etc... 
+
+The order is according to the slide show.
+
+## Likelihood
+
+We refered to 10 observations on people trying to finish 10k running (expressed in minutes). Let's create the dataset!
+
+```{r}
+## RT stands for Running Time
+
+RT <- c(
+  52,
+  54,
+  58,
+  48,
+  41, ## whoow; flying!
+  49,
+  72,
+  53,
+  64,
+  62)
+```
+
+Calculate our 'maximum likelihood estimates' if we assume that running times are normally distributed with a mean and a standard deviation that define our probability density function.
+
+```{r }
+Mean_RT <- mean(RT, na.rm = T)
+Mean_RT
+Sd_RT   <- sd(RT, na.rm = T)
+Sd_RT
+```
+
+Our 'model' for RT:
+
+```{r}
+X <- seq(30, 90, by = 0.5)
+
+Y <- dnorm(X, 
+           mean = Mean_RT, 
+           sd = Sd_RT)
+
+data_frame(X, Y) %>%
+  ggplot(aes(x= X, y = Y)) + geom_line()
+
+```
+
+##  Prior elicitation
+
+```{r}
+## For the mean
+
+c()
+
+## For the sd
+
+
+```
+
+
+
+```{r}
+Data <- data_frame(RT)
+
+MA <- brm(RT~1,
+          data = Data,
+          backend = "cmdstanr"
+          )
+
+summary(MA)
+```
+

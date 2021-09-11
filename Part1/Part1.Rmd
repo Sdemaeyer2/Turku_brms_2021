@@ -1,0 +1,1281 @@
+---
+title: 'Bayesian with R - Turku Workshop - 2021'
+output:
+  xaringan::moon_reader:
+    css: [default, default-fonts, extra.css]
+    seal: false
+    lib_dir: libs
+    nature:
+      beforeInit: "https://platform.twitter.com/widgets.js"
+      ratio: 16:9
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+class: title-slide, center, middle
+
+<style>
+
+.center2 {
+  margin: 0;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  -ms-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
+
+</style>
+
+```{css echo=FALSE}
+.right-column{
+  padding-top: 0;
+}
+
+.remark-code, .remark-inline-code { font-family: 'Source Code Pro', 'Lucida Console', Monaco, monospace;
+                                    font-size: 90%;
+                                  }
+
+
+```
+
+```{r, include = FALSE}
+library(xaringanthemer)
+style_xaringan(link_color = '#002E65')
+```
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE)
+```
+
+
+
+<div class="my-logo-left"> <img src="img/UA-eng-hor-1-RGB.jpg" width="90%"/> </div>
+
+
+# Workshop: Bayesian analyses in R 
+
+.font160[
+.SW-greenD[Part 1]
+]
+Sven De Maeyer - [University of Antwerp / Faculty of Social Sciences]
+
+.font80[
+.UA-red[
+13/09/2021
+]
+]
+
+
+```{r, include = F, message = F}
+library(tidyverse)
+library(bayesplot)
+library(tidybayes)
+library(brms)
+library(ggplot2)
+library(RColorBrewer)
+library(haven)
+library(here)
+```
+
+---
+name: topicslide
+
+# Topics
+
+1.   Aims of the workshop & some practical stuff ([let's go there](#aims))
+
+2.   What's Bayesian? ([let's go there](#Whats_Bayesian))
+
+3.   Why .UA-red[`brms`]? ([let's go there](#why_brms))
+
+4.   .UA-red[`brms`] basic example ([let's go there](#brms_example))
+
+5.   Let's get practical: .SW-greenD[the example data] ([let's go there](#example_data))
+
+6.   Let's slightly increase complexity ([let's go there](#add_complexity))
+
+---
+class: inverse-green, center, middle
+name: aims
+
+# 1.   Aims & practical stuff
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+
+---
+## My aims  are ...
+<br>
+<br>
+- to give some background on Bayesian statistics without getting too technical (I hope)
+- to get you familiar with a basic workflow for a Bayesian analysis making use of .UA-red[ `brms`] and other great packages
+- to let you apply what's learned on your data (so it's hands-on)
+- to supply you with .UA-red[ `R code`] that may inspire
+- to share some great sources
+
+---
+
+## All material is shared...
+
+<br>
+
+On Github there is a dedicated repository where you'll find:
+
+- the Rmarkdown files for the slides
+- annotated R scripts
+- saved models from the slides (some take too long to estimate 'live')
+- data used for the exercises
+
+<br>
+
+The Github repository can be accessed using the following link:
+
+<br>
+
+The slides are on my Talks site [https://slides-sdemaeyer.netlify.app/]
+
+---
+
+## Zoom 
+<br>
+Recordings
+
+<br>
+
+Please ask questions and interfere! Just give a shout! 
+
+<br>
+
+Stuck with some exercises? 
+
+$\rightarrow$ Share your screen and we will try to help
+
+---
+##Your own data
+
+Day 2: 
+
+- some dedicated time to apply stuff to your own data
+- be prepared:
+  - think about some (simple) models (and possible priors...)
+  - prepare your data  to avoid a lot of data issues on day 2
+  - for the brave: try some modelling at home before day 2
+
+---
+name: Prerequisites
+
+##Prerequisites
+
+- be familiar with R
+- have `CmdStan` & `cmdstanr` up and running (see https://mc-stan.org/cmdstanr/articles/cmdstanr.html)
+- have `brms` installed
+- have `tidyverse` installed
+
+
+I will often use the .SW-greenD[functional programming] style making use of the pipe operator (works if `tidyverse` is loaded):
+
+```{r, eval = F}
+A %>% B
+```
+
+This reads as .UA-red[take A] and then .UA-red[do B] 
+
+An example:
+
+```{r, eval = F}
+c(1,2,3,4,5) %>% mean()
+```
+
+reads as .UA-red[create a vector of the values 1, 2, 3, 4 and 5] and then .UA-red[calculate the mean]
+
+Want to learn dplyr by nice GIFS: [hop to this great tweet feed](#tweet_dplyr)
+---
+class: inverse-green, center, middle
+name: Whats_Bayesian
+
+## What's Bayesian inference about?
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+## First things first...
+
+<br>
+<br>
+
+What is <b>.SW-greenD[statistical inference]</b> about?
+
+<br>
+<br>
+
+In your definition, what is a <b>.SW-greenD[statistical model]</b>?
+
+<br>
+<br>
+
+What are <b>.SW-greenD[parameters]</b>?
+---
+## Frequentist vs. Bayesian inference
+
+.pull-left[
+```{r, out.height = "110%", out.width="110%", eval = T, echo = F}
+knitr::include_graphics("figures_inferences_NHST.jpeg")
+```
+]
+
+.pull-right[
+```{r, out.height = "110%", out.width="110%", eval = T, echo = F}
+knitr::include_graphics("figures_inferences_Bayes.jpeg")
+```
+]
+
+---
+
+## To get us started...
+
+.left-column[
+```{r, out.height = "110%", out.width="110%", eval = T, echo = F}
+knitr::include_graphics("Van_Helsing_1931.png")
+```
+]
+
+.right-column[
+- prof. dr. Von Helsing (a famous Vampire Hunter)
+
+- How many Vampires are out there?
+
+- Time for his famous .UA-red[Vampire Test]
+
+- Sample of 200 citizens
+
+- Result: 10.5%  = Vampire
+
+- Ok, but what about the population?
+]
+
+---
+
+## What a Frequentist approach can tell us
+
+Make a Confidence Interval for the 10.5%:
+
+- Estimate the sampling error:
+
+  * sampling error: 0.0217
+
+- Calculate upper and lower limit of the 95% CI:
+
+  * lower: 0.0625
+  * upper: 0.1475
+
+- Inference:
+
+> In 95% of the samples (of sample size 200) we would get a percentage vampires varying somewhere between 6.25% and 14.75%
+
+---
+
+## The Bayesian approach
+
+.left-column[
+Before Von Helsing gathers data he had no knowledge at all! 
+
+If we visualize this 'prior knowledge' it could look like this.]
+
+.right-column[
+
+```{r, echo = FALSE, warning = FALSE, error = FALSE, fig.width=8, fig.height=6 }
+set.seed(1975)
+
+Vamp_data_weinig <- sample(c(TRUE, FALSE), prob = c(0.14, 0.86),
+                   size = 20, replace = TRUE)
+n_draws = 10000
+prior_prop = c(1, 1)
+library(tidyverse)
+data <- as.logical(Vamp_data_weinig)
+data_indices <- round(seq(0, length(data), length.out = min(length(data) + 1, 20)))
+proportion_success <- c(0, seq(0, 1, length.out = 100), 1)
+dens_curves <- map_dfr(data_indices, function(i) {
+    value <- ifelse(i == 0, "Prior", ifelse(data[i], "Vampire", "Not a Vampire"))
+    label <- paste0("n=", i)
+    probability <- dbeta(proportion_success,
+                         prior_prop[1] + sum(data[seq_len(i)]),
+                         prior_prop[2] + sum(!data[seq_len(i)]))
+    probability <- probability / max(probability)
+    data_frame(value, label, proportion_success, probability)
+  })
+
+dens_curves$label <- fct_rev(factor(dens_curves$label, levels =  paste0("n=", data_indices )))
+
+dens_curves$value <- factor(dens_curves$value, levels = c("Prior", "Vampire", "Not a Vampire"))
+
+library(purrr)
+
+dens_curves0 <- dens_curves %>% filter(value == "Prior") 
+
+p <- ggplot(dens_curves0, aes(x = proportion_success, y = label,
+                               height = probability, fill = value)) 
+p +
+    ggridges::geom_density_ridges(stat="identity", color = "white", alpha = 0.8,
+                                  panel_scaling = TRUE, size = 1) +
+    scale_y_discrete("", expand = c(0.01, 0)) +
+    scale_x_continuous("Proportion of Vampires") +
+    scale_fill_manual(values = hcl(120 * 2:0 + 15, 100, 65), name = "", drop = FALSE) +
+    ggtitle(paste0(
+      "Prior distribution (before gathering data (so n=0))")) +
+    theme_light() +
+    theme(legend.position = "top")
+```
+]
+---
+## The Bayesian approach
+
+.left-column[
+
+Von Helsing starts testing ...
+
+First tested person is NOT a Vampire!
+
+So, 100% of Vampires is already less probable.
+
+Time to adjust our knowledge
+]
+
+.right-column[
+```{r, echo=F, warning=F, message=F, error=F, fig.width=8, fig.height=6, fig.retina=3 }
+
+set.seed(1975)
+
+Vamp_data_vol <- sample(c(TRUE, FALSE), prob = c(0.14, 0.86),
+                   size = 200, replace = TRUE)
+
+set.seed(1975)
+
+Vamp_data_weinig <- sample(c(TRUE, FALSE), prob = c(0.14, 0.86),
+                   size = 20, replace = TRUE)
+
+set.seed(1975)
+
+Vamp_data_zeerweinig <- sample(c(TRUE, FALSE), prob = c(0.14, 0.86),
+                   size = 1, replace = TRUE)
+
+prop_model <- function(data = c(), prior_prop = c(1, 1), n_draws = 10000) {
+  library(tidyverse)
+  data <- as.logical(data)
+  # data_indices decides what densities to plot between the prior and the posterior
+  # For 20 datapoints and less we're plotting all of them.
+  data_indices <- round(seq(0, length(data), length.out = min(length(data) + 1, 20)))
+  
+  # dens_curves will be a data frame with the x & y coordinates for the 
+  # denities to plot where x = proportion_success and y = probability
+  proportion_success <- c(0, seq(0, 1, length.out = 100), 1)
+  dens_curves <- map_dfr(data_indices, function(i) {
+    value <- ifelse(i == 0, "Prior", ifelse(data[i], "Vampire", "Not a Vampire"))
+    label <- paste0("n=", i)
+    probability <- dbeta(proportion_success,
+                         prior_prop[1] + sum(data[seq_len(i)]),
+                         prior_prop[2] + sum(!data[seq_len(i)]))
+    probability <- probability / max(probability)
+    data_frame(value, label, proportion_success, probability)
+  })
+  # Turning label and value into factors with the right ordering for the plot
+  dens_curves$label <- fct_rev(factor(dens_curves$label, levels =  paste0("n=", data_indices )))
+  dens_curves$value <- factor(dens_curves$value, levels = c("Prior", "Vampire", "Not a Vampire"))
+  
+  p <- ggplot(dens_curves, aes(x = proportion_success, y = label,
+                               height = probability, fill = value)) +
+    ggridges::geom_density_ridges(stat="identity", color = "white", alpha = 0.8,
+                                  panel_scaling = TRUE, size = 1) +
+    scale_y_discrete("", expand = c(0.01, 0)) +
+    scale_x_continuous("Proportion of Vampires") +
+    scale_fill_manual(values = hcl(120 * 2:0 + 15, 100, 65), name = "", drop = FALSE,
+                      labels =  c("Prior   ", "Vampire   ", "Not a Vampire   ")) +
+    ggtitle(paste0(
+      "Binomial model - Data: ", sum(data),  " Vampires, " , sum(!data), " Not Vampires")) +
+    theme_light() +
+    theme(legend.position = "top")
+  print(p)
+  
+  # Returning a sample from the posterior distribution that can be further 
+  # manipulated and inspected
+  posterior_sample <- rbeta(n_draws, prior_prop[1] + sum(data), prior_prop[2] + sum(!data))
+  invisible(posterior_sample)
+}
+
+prop_model(Vamp_data_zeerweinig)
+```
+
+]
+---
+
+## The Bayesian approach
+
+.left-column[
+After testing the whole sample of 200 citizens, Von Helsing's knowledge is updated:
+]
+
+.right-column[
+```{r, echo=F,warning=F,error=F, preview = TRUE, fig.width=8,fig.height=6, fig.retina=3}
+Vamp_Posterior <- prop_model(Vamp_data_vol)
+```
+]
+---
+
+## The Bayesian approach
+
+.left-column[
+We get a probability for each possible percentage of vampires. 
+
+* plot it in a .UA-red[probability density] plot
+
+* summarize: e.g. 90% most probable values are situated between 7.5% and 14.8%
+]
+
+.right-column[
+```{r ,echo=F,warning=F,error=F,fig.width=8,fig.height=6, fig.retina=3}
+Vamp_Posterior <- data.frame(Vamp_Posterior)
+Vamp_Posterior$density_p <- pbinom(Vamp_Posterior$Vamp_Posterior,200,prob = c(0.14, 0.86))
+p <- ggplot(Vamp_Posterior, aes(x = Vamp_Posterior)) 
+p + geom_density(aes(y = ..density..*(1/10000)),color="darkblue", fill="lightblue",alpha=0.35)+
+    theme_light() +
+    theme(legend.position = "top") +
+    scale_x_continuous("Proportion of Vampires") +
+    scale_y_continuous("Density") +
+    geom_vline(aes(xintercept=median(Vamp_Posterior)),
+            color="darkblue", linetype="dashed", size=1) +
+  annotate("label",label = "median = 0.107", x = 0.107, y = 0.001, colour = "darkblue")
+```
+]
+
+---
+## Advantages & Disadvantages of Bayesian analyses
+<br>
+
+Advantages:
+
+- Natural approach to express uncertainty
+- Ability to incorporate prior knowledge
+- Increased model flexibility
+- Full posterior distribution of the parameters
+- Natural propagation of uncertainty
+
+<br>
+
+Disadvantage:
+
+- Slow speed of model estimation
+- Some reviewers don't understand you (<i>"give me the p-value"</i>)
+
+.footnote[[*] Slight adaptation of a slide from Paul Bürkner's presentation available on YouTube  
+[https://www.youtube.com/watch?v=FRs1iribZME] ] 
+
+---
+
+## Bayesian Theorem
+
+.pull-left[
+```{r, out.height = "50%", out.width="50%", echo = FALSE}
+knitr::include_graphics("prior_data_posterior.png")
+```
+]
+
+.pull-right[
+
+$$
+P(\theta|data) = \frac{P(data|\theta)P(\theta)}{P(data)}
+$$
+<br>
+
+with 
+
+- $P(data|\theta)$ : the .UA-red[likelihood] of the data given our model $\theta$
+- $P(\theta)$ : our .UA-red[prior] belief about model parameters 
+- $P(\theta|data)$: the .UA-red[posterior] probability about model parameters
+]
+
+.footnote[meme from https://twitter.com/ChelseaParlett/status/1421291716229746689?s=20]
+---
+
+## Likelihood
+
+.left-column[
+  $P(data|\theta)$
+  
+  sometimes also written as
+  
+  $L(\theta|data)$
+  ]
+  
+.right-colomn[
+
+<br>
+
+Actually this is our .UA-red[<b>model</b>] part
+
+<br>
+
+with $\theta$ being the model and all parameters in the model
+
+]
+---
+## Likelihood
+
+.left-column[
+Example: 
+
+.SW-greenD[<i>What if we want to model how fast people can run a 1OK?</i>]
+
+```{r, out.height = "80%", out.width="80%", echo = FALSE}
+knitr::include_graphics("running.jpg")
+```
+
+]
+
+.right-column[
+
+Data = 10 observations (Running times for 10K in minutes)
+
+```{r, echo = FALSE}
+RT <- c(
+  52,
+  54,
+  58,
+  48,
+  41, ## whoow; flying!
+  49,
+  72,
+  53,
+  64,
+  62)
+RT
+```
+
+The model (<i>normal distribution</i>):
+
+$y_i \backsim N(\mu, \sigma)$
+
+The parameter values that maximize the likelihood of our data:
+.footnotessize[
+```{r}
+Mean_RT <- mean(RT, na.rm = T)
+Mean_RT
+Sd_RT   <- sd(RT, na.rm = T)
+Sd_RT
+```
+  ]
+]
+
+---
+
+## Prior
+.center2[
+.SW-greenD[
+Expression of our prior knowledge (belief) about probable parameter values as a probability density function
+]
+<br> <br>
+><i>"For Bayesians, the data are treated as fixed and the parameters vary. [...] Bayes' rule tells us that to calculate the posterior probability distribution we must combine a likelihood with a prior probability distribution over parameter values." </i>
+<br> (Lambert, 2018, p.88)
+]
+
+---
+
+## Prior
+
+.left-column[
+Example: 
+
+.SW-greenD[<i>What if we want to model how fast people can run a 1OK?</i>]
+
+```{r, out.height = "80%", out.width="80%", echo = FALSE}
+knitr::include_graphics("running.jpg")
+```
+
+]
+
+.right-column[
+
+$y_i \backsim N(\mu, \sigma)$
+
+Express our prior beliefs about 
+
+.UA-red[
+$\mu$
+] 
+
+and 
+.UA-red[
+$\sigma$
+]
+
+<i> .UA-blue[
+>Please share yor thoughts? What are possible values of  the population average and standard deviation for our example?] </i>
+
+]
+
+---
+
+## Prior
+
+.pull-left[
+### Uninformative / Vague
+
+When .SW-greenD[objectivity] is crucial and you want <i> .SW-greenD[let the data speak for itself...] </i>
+
+]
+.pull-right[
+### Informative
+
+When including significant information is crucial 
+
+-   previously collected data
+-   results from former research/analyses
+-   data of another source
+-   theoretical considerations
+]
+
+---
+
+## Prior
+
+.left-column[
+Example: 
+
+.SW-greenD[<i>What if we want to model how fast people can run a 1OK?</i>]
+
+```{r, out.height = "80%", out.width="80%", echo = FALSE}
+knitr::include_graphics("running.jpg")
+```
+
+]
+
+.right-column[
+<b>Vague priors for $\mu$ </b>
+
+```{r, echo = F, warning=F,error=F,fig.width=7,fig.height=5, fig.retina=3}
+X <- seq(0, 200, by = 0.1)
+
+Vague1 <- dnorm(
+  X, 
+  50,
+  20
+  )
+
+Vague2 <- dunif(
+  X,
+  min = 1,
+  max = 180
+)
+
+data_frame(X, Vague1, Vague2) %>%
+  pivot_longer(c(Vague1, Vague2)) %>%
+  rename(Prior = name) %>%
+  ggplot(aes(x = X, y = value ,color = Prior)) + 
+    geom_line() +
+    theme_light() +
+    theme(legend.position = "top") +
+    labs(
+      x = expression(mu)
+    )
+
+```
+
+]
+---
+
+## Say we have following priors
+
+```{r, echo = TRUE}
+par(mfrow=c(2,2))
+curve( dnorm( x , 50 , 20 ) , from=1 , to=200 ,xlab="mu", main="Prior for mu")
+curve( dunif( x , 1 , 40 ) , from=-10 , to=50 ,xlab="sigma", main="Prior for sigma")
+```
+
+---
+## Calculate the Posterior by hand (aka .UA-red[grid approximation])
+.pull-left[
+```{r}
+# sample some values for mu and sigma
+mu.list <- seq(from = 30, 
+               to = 90, 
+               length.out=200)
+sigma.list <- seq(from = 2, 
+                  to = 30, 
+                  length.out = 200)
+post <- expand.grid(mu = mu.list, 
+                    sigma = sigma.list)
+
+# Calculate the loglikelihood of the data
+# for each parameter value
+post$LL <- 
+  sapply(1:nrow(post), 
+    function(i) sum(
+      dnorm(
+        RT ,
+        mean=post$mu[i] ,
+        sd=post$sigma[i] ,
+        log=TRUE ) ) )
+```
+
+]
+.pull-right[
+```{r}
+# Calculate posterior as product 
+# of LL and Prior
+# but you see a '+ sign' 
+# because we put everything on the 
+# log scale 
+# (to avoid getting zero's 
+#  due to rounding in R)
+
+post$prod <- post$LL + 
+  dnorm(post$mu, 50 , 10 , TRUE) + 
+  dunif(post$sigma , 1 , 40 , TRUE)
+
+# Re-scale the posterior 
+# to the probability scale
+post$prob <- exp(post$prod - 
+                   max(post$prod)
+                 )
+```
+]
+
+---
+
+## Visualise the posterior distribution
+
+<i> Make a contour plot </i>
+
+.pull-left[
+
+```{r, eval = F}
+# Sampling going on
+# So for reproducibility
+
+set.seed(1975)
+
+post %>%
+  # sample 10000 rows
+  # with replacement
+  # higher prob higher prob to 
+  # be sampled
+  sample_n(size = 10000, 
+           replace = TRUE, 
+           weight = prob) %>%
+  
+  # create the plot
+  ggplot(aes(x = mu, y = sigma)) +
+  geom_density_2d_filled() + 
+  theme_minimal()
+```
+]
+
+.pull-right[
+
+```{r, echo = F, eval = T, fig.width=6, fig.height=6}
+set.seed(1975)
+
+post %>%
+  sample_n(size = 10000, replace = TRUE, weight = prob) %>%
+  ggplot(aes(x = mu, y = sigma)) +
+  geom_density_2d_filled() + 
+  theme_minimal()
+```
+]
+
+---
+
+## Visualise the posterior distributions
+
+<i> Or sample from posterior and plot simple density plots </i>
+
+```{r}
+sample.rows <- sample(1:nrow(post), size=10000, replace=TRUE, prob=post$prob)
+
+sample.mu <- post$mu[sample.rows]
+sample.sigma <- post$sigma[sample.rows]
+```
+
+.pull-left[
+
+```{r, fig.width=4,fig.height=4}
+plot(density(sample.mu),main="mu")
+```
+]
+
+.pull-right[
+```{r, fig.width=4,fig.height=4}
+plot(density(sample.sigma),main="sigma")
+```
+]
+---
+class: inverse-green, center, middle
+name: why_brms
+
+## 3. Why `brms`?
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+## Imagine
+
+A 'simple' linear model
+
+<br>
+
+$$\begin{aligned}
+  & RT_{i}  \sim N(\mu,\sigma_{e_{i}})\\
+  & \mu = \beta_0 + \beta_1*\text{Weigth}_{i} + \beta_2*\text{Height}_{i} + \beta_3*\text{Age}_{i} + \beta_4*\text{WeeklyTrainingHours}_{i} + \beta_5*\text{Gender}_{i} \\
+\end{aligned}$$
+
+<br>
+
+So you can get a REALLY LARGE number of parameters!
+
+---
+## Markov Chain Monte Carlo - Why?
+
+Complex models $\rightarrow$ Large number of parameters $\rightarrow$ exponentional number of combinations!
+
+<br>
+
+Posterior gets unsolvable by grid approximation
+
+<br>
+
+We will approximate the 'joint posterior' .SW-greenD[by 'smart' sampling]
+
+<br>
+
+Samples of combinations of parametervalues are drawn
+
+<br>
+
+BUT: .SW-greenD[samples will not be random!]
+
+---
+## MCMC - demonstrated
+
+.center2[
+Following link brings you to an interactive tool that let's you get the basic idea behind MCMC sampling:
+
+https://chi-feng.github.io/mcmc-demo/app.html#HamiltonianMC,standard
+]
+
+
+---
+## Software
+
+<br>
+
+- different dedicated software/packages are available: JAGS / BUGS / Stan
+
+<br>
+
+- most powerful is .UA-red[Stan]! Specifically the *Hamiltonian Monte Carlo* algorithm makes it the best choice at the moment
+
+
+<br>
+
+
+- .UA-red[Stan] is a probabilistic programming language that uses C++ 
+
+---
+
+## Example of Stan code
+
+.scriptsize[
+```{r echo = F}
+load(here("Models", "Model_math_naive.R"))
+stancode(Model_math_naive)
+```
+]
+---
+
+![alt text](brms_procedure.jpeg)
+
+---
+class: inverse-green, center, middle
+name: brms_example
+
+## 4. `brms` basic example
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+
+## `brms` syntax
+Very very similar to `lme4` and in line with typical R-style writing up of a model ...
+.pull-left[
+`lme4`
+
+```{r, eval = FALSE}
+Model <- lmer(
+  y ~ x1 + x2 + (1|Group),
+  data = Data,
+  
+  
+  
+  ...
+)
+```
+]
+
+
+.pull-left[
+`brms`
+
+```{r, eval = FALSE}
+Model <- brm(
+  y ~ x1 + x2 + (1|Group),
+  data = Data,
+* family = "gaussian",
+* backend = "cmdstanr"
+  
+  ...
+)
+```
+]
+
+Notice: 
+
+- `family = "gaussian"` indicates the "likelihood" function we will use
+- `backend = "cmdstanr"` indicates the way we want to interact with Stan and C++
+
+---
+
+## Let's retake the example on running
+.left-column[
+Example: 
+
+.SW-greenD[<i>What if we want to model how fast people can run a 1OK?</i>]
+
+```{r, out.height = "80%", out.width="80%", echo = FALSE}
+knitr::include_graphics("running.jpg")
+```
+
+]
+
+.right-column[
+The simplest model looked like:
+
+$$
+RT_i \sim N(\mu,\sigma_e)
+$$
+
+In `brms` this model is:
+
+```{r echo = TRUE, eval = FALSE}
+# First make a dataset from our RT vector
+DataRT <- data_frame(RT)
+
+Mod_RT1 <- brm(
+  RT ~ 1, # We only model an intercept
+  data = DataRT,
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+.UA-red[<b>
+.Large[🏃]  Try it yourself and run the model ...
+</b>
+]
+]
+
+---
+
+```{r include = FALSE}
+Mod_RT1 <- readRDS(here("models", "Mod_RT1.RDS"))
+```
+
+```{r, out.height = "60%", out.width="60%", echo = FALSE}
+knitr::include_graphics("RT_Model1_Estimation.jpg")
+```
+
+---
+## But ...
+.center2[
+```{r, out.height = "50%", out.width="50%", echo = FALSE}
+knitr::include_graphics("MCMC_Skeleton.jpg")
+```
+]
+---
+
+## So
+
+For the workshop all models are in the .SW-greenD[models] folder
+
+You can normally read model information with `readRDS`
+
+Here's an example:
+
+```{r}
+Mod_RT1 <- readRDS(here("models", "Mod_RT1.RDS"))
+```
+
+This model information was saved with the `saveRDS` function:
+
+```{r, eval = FALSE}
+saveRDS(Mod_RT1, here("models", "Mod_RT1.RDS"))
+```
+
+.footnote[Notice that I use the package `here` allowing me to access files anywhere in the RStudio Projects folder using the `here( )` commando (no fuzz with paths on your computer)]
+
+---
+
+# MCMC = sampling
+
+.left-column[
+MCMC results will differ each time run 
+
+<br>
+
+Of course, not a lot if your model is good!
+
+<br>
+
+So, what if you want to be reproducible?
+
+]
+
+
+.right-column[
+
+```{r echo = TRUE, eval = FALSE}
+Mod_RT1 <- brm(
+  RT ~ 1, # We only model an intercept
+  data = DataRT,
+  backend = "cmdstanr",
+* seed = 1975 # make sure we get the same results each time :-)
+)
+```
+
+]
+
+---
+## Good all `summary( )` function
+
+
+```{r, highlight.output = c(10,14) }
+summary(Mod_RT1)
+```
+
+---
+
+## Samples & chains?
+
+```{r,echo = FALSE, highlight.output = c(5,6) }
+summary(Mod_RT1)
+```
+
+<i>By default `brms` sets .SW-greenD[4 chains of 2000 iterations] of which .SW-greenD[1000 iterations/chain are warm-up] </i>
+
+---
+
+## Samples & chains: some advise
+
+Some advise
+
+---
+
+## Good all `plot( )` function
+.pull-left[
+```{r,fig.width=6, fig.height=6 }
+plot(Mod_RT1)
+```
+]
+.pull-right[
+
+.UA-red[Left panel]
+
+the posterior distributions (<i>later we will see other more informative ways to plot the information in the posterior</i>)
+
+.UA-red[Right panel] 
+
+the convergence of the each parameter 
+
+$\rightarrow$ should look like a caterpillar
+
+
+```{r, out.height = "50%", out.width="50%", echo = FALSE}
+knitr::include_graphics("catterpillar.jpeg")
+```
+
+]
+
+---
+
+## Model Convergence
+
+.pull-left[
+```{r, out.height = "99%", out.width="99%", echo = FALSE}
+knitr::include_graphics("Vethari_paper.jpg")
+```
+]
+.pull-right[
+- $\widehat R$ < 1.015 for each parameter estimate
+
+- at least 4 chains are recommended
+
+- Effective Sample Size (ESS) > 400 to rely on $\widehat R$ 
+]
+
+---
+
+## Let's inspect the output again
+
+```{r,echo = FALSE}
+summary(Mod_RT1)
+```
+
+---
+class: inverse-green, center, middle
+name: example_data
+
+## 5. Let's get practical: the example dataset
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+## Judging 'argumentative texts'
+
+
+![alt text](DPAC__Groep_1_CJ__DMM_607-701_Page_1-2.png__Full_recordings__All_Participants.jpg)
+---
+
+## Procedure
+
+- 26 high school teachers (Dutch) voluntary participated
+
+- each did 10 comparisons of 2 argumentative texts from 10th graders
+
+- 3 batches of comparisons with random allocation of judges to one of the batches
+
+- all batches similar composition of comparisons regarding the characteristics of the pairs; the pairs, however not the same
+
+- Tobii TX300 dark pupil eye-tracker with a 23-inch TFT monitor (max. resolution of 1920 x 1080 pixels)
+
+- data sampled binocularly at 300 Hz 
+
+---
+## AOI's
+
+![alt text](example_AOI.png)
+---
+
+## The data
+
+```{r, echo = F, warning = F}
+load(here("data","Durations_CJ.Rdata"))
+
+Durations_CJ %>% 
+  DT::datatable(
+  fillContainer = FALSE, 
+  options = list(pageLength = 8,
+                 columnDefs = list(list(
+                    targets = 1,
+                    render = JS(
+                    "function(data, type, row, meta) {",
+                    "return type === 'display' && data.length > 5 ?",
+                    "'<span title=\"' + data + '\">' + data.substr(0, 6) + '...</span>' :                        data;",
+                    "}")
+                    )
+                  )), 
+    callback = JS('table.page(1).draw(false);')
+) %>% formatRound(columns=c('Dur_Log'), digits=3)
+```
+
+
+---
+class: inverse-green, center, middle
+name: add_complexity
+
+## 6. Let's slightly increase complexity
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+
+---
+
+## Question 1
+
+.UA-red[<i><b> How much time do people spend in a text (in total) when comparing two texts? </i></b>]
+
+A simple model could look like:
+
+$$
+log(Time_i) \sim N(\mu,\sigma_e)
+$$
+
+with $Time_i$ being the total time for each combination of participant, comparison and AOI_type
+
+.small[
+```{r}
+Durations_CJ %>%
+  group_by(Partic, Compar, AOI_Type) %>%
+  summarize(
+    Dur_Seconds = mean(Dur_Seconds),
+    Dur_Log = mean(Dur_Log)
+  ) %>% head(5)
+```
+]
+
+---
+
+## Question 1
+
+.UA-red[<i><b> How much time do people spend in a text (in total) when comparing two texts? </i></b>]
+
+A simple model could look like:
+
+$$
+log(Time_i) \sim N(\mu,\sigma_e)
+$$
+
+----
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+.right-column[
+- Try it yourself and run the model
+- Inspect convergence
+- Interpret the results
+</b>
+]
+]
+
+---
+
+## Question 1
+
+First we make a dataset
+
+```{r}
+Data_CJ1 <- Durations_CJ %>%
+  group_by(Partic, Compar, AOI_Type) %>%
+  summarize(
+    Dur_Seconds = mean(Dur_Seconds),
+    Dur_Log = mean(Dur_Log)
+  )
+```
+
+Then we can run the model
+
+```{r, eval = F}
+Model1_CJ <- brm(
+  Dur_Log ~ 1,
+  data = Data_CJ1,
+  family = "gaussian",
+  backend = "cmdstanr",
+  seed = 1975
+)
+```
+
+---
+class: inverse-blue, center, middle
+
+## Some references & appendices 
+
+.footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+class: center, middle
+name: tweet_dplyr
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr"><a href="https://twitter.com/hashtag/dplyr?src=hash&amp;ref_src=twsrc%5Etfw">#dplyr</a> in 6 tweets. Using the starwars dataset.<br><br>1. select() columns<a href="https://twitter.com/hashtag/tidyverse?src=hash&amp;ref_src=twsrc%5Etfw">#tidyverse</a> <a href="https://twitter.com/hashtag/RStats?src=hash&amp;ref_src=twsrc%5Etfw">#RStats</a> <a href="https://t.co/juGZbGeT9t">pic.twitter.com/juGZbGeT9t</a></p>&mdash; Hari (@illustratedbyte) <a href="https://twitter.com/illustratedbyte/status/1432416532391514113?ref_src=twsrc%5Etfw">August 30, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+[back to Prerequisites](#Prerequisites)
