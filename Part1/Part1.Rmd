@@ -56,9 +56,10 @@ knitr::opts_chunk$set(fig.retina = 3, warning = FALSE, message = FALSE)
 # Workshop: Bayesian analyses in R 
 
 .font160[
-.SW-greenD[Part 1]
+.SW-greenD[Sven De Maeyer]
 ]
-Sven De Maeyer - [University of Antwerp / Faculty of Social Sciences]
+
+[University of Antwerp / Faculty of Social Sciences]
 
 .font80[
 .UA-red[
@@ -2371,20 +2372,153 @@ tab_model(Model3_CJ)
 ]
 ---
 
-- how to tweak the estimation:
-
-  - set number of chains, iterations
-  - set the number of cores to use
-  - change the priors (after visualising the priors used)
+## Combine models output in a table
+```{r}
+tab_model(Model2_CJ, Model3_CJ)
+```
 
 ---
+
+## How to tweak the estimation?
+
+.SW-greenD[Set the number of chains; the number of iterations; the number of warm-up]
+
+```{r, eval = F}
+Model3_CJ <- brm(
+  Dur_Log ~ Text_Length + Right_Text + (1|Partic),
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+* iter = 3000,
+* chains = 8,
+* warmup = 1500,
+  seed = 1975
+)
+```
+
+Tip: it's better to run less chains and more iterations per chain, so you get more precise parameter estimation
+
+---
+
+## How to tweak the estimation?
+
+.SW-greenD[Increase efficiency]
+
+.small[
+```{r, eval = F}
+Model3_CJ <- brm(
+  Dur_Log ~ Text_Length + Right_Text + (1|Partic),
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+  iter = 3000,
+  chains = 8,
+  warmup = 1500,
+  cores = 4,
+  seed = 1975
+)
+```
+]
+
+Modern computers have multiple cores $\rightarrow$ let them work simultaneously
+---
+
+## Question 4
+
+<i> Hey! It's still the same question! </i>
+
+.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+
+
+In the previous analyses we neglected that we have multiple observations per pair of texts!
+
+# Your turn! You have the power!
+.left-column[
+![](https://media.giphy.com/media/A9grgCQ0Dm012/giphy.gif)
+]
+
+.right-column[
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+- Do the necessary analyses
+- Make a plot to summarise the posterior for sigma & the sd's
+- If your quick! Play around with different options we saw...
+</b>
+]
+]
+
+---
+
+## Solution:
+
+```{r, eval = FALSE}
+Model4_CJ <- brm(
+  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic) + (1|Compar),
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+  cores = 4,
+  seed = 1975
+)
+```
+
+---
+
+.footnotesize[
+
+```{r}
+Model4_CJ <- readRDS(here("models", "Model4_CJ.RDS"))
+summary(Model4_CJ)
+```
+
+]
+
+---
+
+## But is it a good model?
+
+.center2[
+Two complementary procedures:
 
 - posterior-predictive check
-- model comparison with loo cross-validation
+
+- compare models with .SW-greenD[<i>leave one out cross-validation</i>] 
+]
 
 ---
 
-Test: check whether the difference between Left and Right text differs from person to person!
+# Posterior-predictive check
+
+A visual check that can be performed with `pp_check()` from `brms`
+
+.small[
+```{r, fig.width = 5, fig.height = 5}
+pp_check(Model4_CJ)
+```
+]
+
+---
+
+## Mmodel comparison with loo cross-validation
+
+$\sim$ AIC or BIC in Frequentist statistics
+
+.small[
+```{r}
+loo_Model2 <- loo(Model2_CJ)
+loo_Model3 <- loo(Model3_CJ)
+loo_Model4 <- loo(Model4_CJ)
+
+Comparison<- 
+  loo_compare(loo_Model2, 
+            loo_Model3, 
+            loo_Model4)
+
+print(Comparison, simplify = F)
+```
+
+]
 
 ---
 class: inverse-blue, center, middle
@@ -2399,7 +2533,6 @@ class: inverse-blue, center, middle
 ```{r, out.height = "90%", out.width="90%", echo = FALSE}
 knitr::include_graphics("cover_Lambert.jpg")
 ```
-
 
 ---
 
@@ -2432,6 +2565,44 @@ If you like running - like I do - this could be a great companion on your run!
 https://www.learnbayesstats.com/
 
 ]
+
+---
+
+## Site on creating the graphs
+
+.center2[
+There are many blogs and websites that you can consult if you want to find out more about making graphs. 
+
+<br>
+
+One that I often fall back to is:
+
+<br>
+
+http://mjskay.github.io/tidybayes/
+]
+
+---
+
+## Examplary paper
+
+with an associated 'Walkthrough in R': https://rpubs.com/jensroes/765467 
+
+```{r, out.height = "90%", out.width="90%", echo = FALSE}
+knitr::include_graphics("Paper_Jens.jpg")
+```
+
+---
+class: inverse, center, bottom
+background-image: url(marko-pekic-IpLa37Uj2Dw-unsplash.jpg)
+background-size: contain
+
+# Questions?
+
+Do not hesitate to contact us!
+
+
+sven.demaeyer@uantwerpen.be
 
 ---
 class: center, middle
