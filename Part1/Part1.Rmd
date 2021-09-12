@@ -12,8 +12,7 @@ output:
       highlightLines: true
       countIncrementalSlides: false
 ---
-class: title-slide, center, middle
-
+class: center, middle
 <style>
 
 .center2 {
@@ -75,10 +74,58 @@ library(tidybayes)
 library(brms)
 library(ggplot2)
 library(DT)
+library(bayestestR)
+library(parameters)
+library(see)
+library(sjPlot)
 library(RColorBrewer)
-library(haven)
 library(here)
 ```
+---
+background-image: url(despicable_me2.jpeg)
+background-size: contain
+class: inverse
+
+## .yellow[About me]
+
+- University  of Antwerp;  Faculty of Social Sciences; dept. Training and Education Sciences
+
+- phd on methodological issues in research on School Effectiveness
+
+- research on a broad range of topics (e.g. psychometrics, writing research, learning strategies, education for sustainable development, linguistics, speech development of impaired children, ...)
+
+- my main focus shifted recently to Comparative Judgement and Learning from comparisons
+
+- since a year or 2 discovering Bayesian Statistics & `brms`
+
+<br>
+<br>
+<br>
+
+
+Blog: https://svendemaeyer.netlify.app/
+
+Twitter: @svawa
+
+github: https://github.com/Sdemaeyer2
+
+---
+background-image: url(we_like_you_too.jpg)
+background-size: contain
+class: inverse, center, bottom
+
+
+## .green[What about you?]
+
+.black[Who has some experience with Bayesian analyses?]
+
+.black[... with `Stan`?]
+
+.black[ ... with `brms`?]
+
+<br>
+<br>
+<br>
 
 ---
 name: topicslide
@@ -1071,7 +1118,8 @@ Mod_RT1 <- brm(
 ]
 
 ---
-## Good all `summary( )` function
+
+## Good old `summary( )` function
 
 
 ```{r, highlight.output = c(10,14) }
@@ -1090,13 +1138,37 @@ summary(Mod_RT1)
 
 ---
 
-## Samples & chains: some advise
+## Samples & chains: what are 'burn-in' iterations
 
-Some advise
+.center2[
+```{r, out.height = "100%", out.width="100%", echo = FALSE}
+knitr::include_graphics("mcmc_fases_p1.png")
+```
+]
 
 ---
 
-## Good all `plot( )` function
+## Samples & chains: what are 'burn-in' iterations
+
+.center2[
+```{r, out.height = "100%", out.width="100%", echo = FALSE}
+knitr::include_graphics("mcmc_fases_p2.png")
+```
+]
+
+---
+
+## Samples & chains: what are 'burn-in' iterations
+
+.center2[
+```{r, out.height = "100%", out.width="100%", echo = FALSE}
+knitr::include_graphics("mcmc_fases_p3.png")
+```
+]
+
+---
+
+## Good ald `plot( )` function
 .pull-left[
 ```{r,fig.width=6, fig.height=6 }
 plot(Mod_RT1)
@@ -1608,8 +1680,6 @@ We can simply do calculations with our posterior samples! So, we can just use `e
 .footnotesize[
 
 ```{r echo = T, eval = F}
-names <- c("mu","sigma")
-
 names <- c("mu_log_scale","mu_sec", "sigma")
 
 posterior_samples(Model1_CJ) %>%
@@ -1702,15 +1772,352 @@ Model2_CJ <- brm(
   seed = 1975
 )
 ```
----
 
-To do:
-
-Introduce  `bayesplot::mcmc_areas`
-Introduce the concepth of ROPE
-Introduce `brms::hypothesis`
 
 ---
+
+## Solution
+
+Visual checking of convergence
+
+```{r, include = FALSE}
+Model2_CJ <- readRDS(here("models", "Model2_CJ.RDS"))
+```
+
+.pull-left[
+```{r, eval = FALSE}
+plot(Model2_CJ)
+```
+]
+
+.pull-right[
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+plot(Model2_CJ)
+```
+]
+
+
+---
+
+## Solution: check output
+
+.small[
+```{r}
+summary(Model2_CJ)
+```
+]
+
+---
+
+## Solution: create plot on posteriors for beta's
+
+
+.pull-left[
+
+```{r, eval = FALSE}
+posterior_samples(Model2_CJ) %>%
+  select(
+    b_Intercept,
+    b_Text_Length,
+    b_Right_Text
+  ) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(
+    .width = c(.5, .9, .95), 
+    normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+  
+```
+]
+
+.pull-right[
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+posterior_samples(Model2_CJ) %>%
+  select(
+    b_Intercept,
+    b_Text_Length,
+    b_Right_Text
+  ) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value, y = 0)) +
+  stat_halfeye(.width = c(.5, .9, .95), normalize = "panels") +
+  scale_y_continuous(NULL, breaks = NULL) +
+  xlab("marginal posterior") +
+  facet_wrap(~name, scales = "free")
+  
+```
+]
+
+---
+
+## Let's introduce `mcmc_areas()` from the `bayesplot`
+
+.pull-left[
+```{r, eval = FALSE}
+mcmc_areas(
+  Model2_CJ,
+  pars = c("b_Intercept", 
+           "b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+
+]
+
+.pull-right[
+
+```{r echo = FALSE, fig.width = 6, fig.height=6}
+mcmc_areas(
+  Model2_CJ,
+  pars = c("b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+]
+
+
+---
+
+## or `mcmc_areas_ridges` from `bayesplot`
+
+.pull-left[
+```{r, eval = FALSE}
+mcmc_areas_ridges(
+  Model2_CJ,
+  pars = c("b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+
+]
+
+.pull-right[
+
+```{r echo = FALSE, fig.width = 6, fig.height=6}
+mcmc_areas_ridges(
+  Model2_CJ,
+  pars = c("b_Intercept", 
+           "b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+]
+
+---
+
+## or `mcmc_intervals` from `bayesplot`
+
+& let's play around with the `color_scheme_set()` that works with all `bayesplot` functions...
+
+.pull-left[
+```{r, eval = FALSE}
+color_scheme_set("red")
+mcmc_intervals(
+  Model2_CJ,
+  pars = c("b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+
+]
+
+.pull-right[
+
+```{r echo = FALSE, fig.width = 6, fig.height=6}
+color_scheme_set("red")
+mcmc_intervals(
+  Model2_CJ,
+  pars = c("b_Text_Length",
+           "b_Right_Text"),
+  prob = 0.89
+)
+```
+
+]
+
+---
+
+## CI's (ETI's) vs. HDI's
+
+
+```{r, echo = FALSE}
+# Generate a gamma distribution (that is skew)
+set.seed(1975)
+posterior <- distribution_gamma(1000, 1.5, 2)
+
+# Compute HDI and Quantile CI
+ci_hdi <- ci(posterior, method = "HDI")
+ci_eti <- ci(posterior, method = "ETI")
+
+# Plot the distribution and add the limits of the two CIs
+posterior %>% 
+  estimate_density(extend = TRUE) %>% 
+  ggplot(aes(x = x, y = y)) +
+  geom_area(fill = "#E6AB02") +
+
+  # HDI in green
+  geom_vline(xintercept = ci_hdi$CI_low, color = "#66A61E", size = 2) +
+  geom_vline(xintercept = ci_hdi$CI_high, color = "#66A61E", size = 2) +
+  # ETI in purple
+  geom_vline(xintercept = ci_eti$CI_low, color = "#7570B3", size = 2) +
+  geom_vline(xintercept = ci_eti$CI_high, color = "#7570B3", size = 2) +
+  scale_y_continuous("posterior probability density") +
+  scale_x_continuous("possible parameter values") +
+  ggtitle("A skew posterior with a 89% HDI (green lines) \n and a 89% CI (aka ETI) (purple lines)")
+```
+
+
+
+---
+
+## Alternative for p-values?
+
+---
+
+## Alternative for p-values?
+
+.pull-left[
+```{r, out.height = "99%", out.width="99%", echo = FALSE}
+knitr::include_graphics("Kruchke_2018.jpg")
+```
+]
+.pull-right[
+
+<b>.UA-red[ROPE] </b>: Region Of Practical Equivalence
+
+.SW-greenD[
+<i> 
+> Set a region of parameter values that can be considered equivalent to having no effect
+
+</i>
+]
+
+- in standard effect sizes the advised default is a range of -0.1 to 0.1
+
+- this equals half of a small effect size (Cohen, 1988)
+
+- all parameter values in that range are set equal to no effect
+]
+
+---
+
+## Alternative for p-values?
+
+.pull-left[
+```{r, out.height = "99%", out.width="99%", echo = FALSE}
+knitr::include_graphics("Kruchke_2018.jpg")
+```
+]
+.pull-right[
+
+<b>.UA-red[ROPE + HDI rule] </b>
+
+- 95% of HDI out of ROPE $\rightarrow$ $H_0$ rejected
+
+- 95% of HDI all in ROPE $\rightarrow$ $H_0$ not rejected
+
+- 95% of HDI partially out of ROPE $\rightarrow$ undecided
+]
+
+---
+
+## HDI + ROPE with `brms` results
+
+We can use the `equivalence_test()` function of the `bayestestR` package
+
+```{r}
+equivalence_test(Model2_CJ)
+```
+
+---
+
+## Or the `parameters` package
+
+This package has the nice flexible `model_parameters()` function!
+
+.footnotezise[
+```{r}
+posterior_samples(Model2_CJ) %>%
+  model_parameters(rope_range=c(-0.12,0.12))
+```
+]
+
+`pd` stands for <i>.SW-greenD[probability of direction]</i>
+
+---
+
+## Now it's getting more fun
+
+We can combine `model_parameters()` with `plot()` because the `see` package deals with the output!
+
+
+.pull-left[
+```{r, eval = FALSE}
+posterior_samples(Model2_CJ) %>%
+  select(
+    b_Right_Text,
+    b_Text_Length
+  ) %>%
+  model_parameters(
+    ) %>%
+  plot(show_labels = TRUE, 
+       size_text = 3)
+```
+]
+
+.pull-right[
+
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+posterior_samples(Model2_CJ) %>%
+  select(
+    b_Right_Text,
+    b_Text_Length
+  ) %>%
+  model_parameters() %>%
+  plot(show_labels = TRUE, size_text = 3)
+```
+]
+
+---
+
+## Now it's getting more fun
+
+And another one ... 
+
+We can combine `equivalence_test` with `plot()` as well thx to the `see` package!
+
+
+.pull-left[
+```{r, eval = FALSE}
+equivalence_test(Model2_CJ) %>%
+  plot( )
+```
+]
+
+.pull-right[
+
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+equivalence_test(Model2_CJ) %>%
+  plot( )
+```
+]
+
+---
+
+<i>"Hey! You promised mixed effects model"</i>
 
 ## Question 3
 
@@ -1728,14 +2135,13 @@ $$\begin{aligned}
   & \mu_j \sim N(0,\sigma_{u_j})
 \end{aligned}$$
 
-
 ---
 
-## Solution: adding random term to the model 
+## Adding random term to the model 
 
 ```{r, eval = FALSE}
 Model3_CJ <- brm(
-  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic),
+* Dur_Log ~ Text_Length + Right_Text + (1|Partic),
   data = Data_CJ2,
   family = "gaussian",
   backend = "cmdstanr",
@@ -1743,13 +2149,226 @@ Model3_CJ <- brm(
 )
 ```
 
+----
+
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Estimate the model
+- Check the output
+- Interpret the results
+</b>
+]
+
+
 
 ---
 
-- Show the modelling;
+## Solution
 
-- Make plot for random effects
+.footnotesize[
+```{r, highlight.output = c(8,9,10,11)}
+Model3_CJ <- readRDS(here("models", "Model3_CJ.RDS"))
 
+summary(Model3_CJ)
+```
+]
+
+---
+
+## What do we get?
+
+If we want to plot information on the variances (or sd) we have to know the names of elements
+
+.footnotesize[
+```{r, highlight.output = c(5,8:28)}
+posterior_samples(Model3_CJ) %>%
+  str()
+```
+]
+
+---
+
+# Your turn!
+
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+
+- Make a plot to summarise the posterior for sigma & the sd for participants
+- If your quick! Play around with different options we saw
+</b>
+]
+
+---
+
+## A possible solution:
+
+.pull-left[
+```{r, eval = FALSE}
+posterior_samples(Model3_CJ) %>%
+  select(
+    sigma,
+    sd_Partic__Intercept
+  ) %>%
+  model_parameters(
+    ) %>%
+  plot(show_labels = TRUE, 
+       size_text = 3)
+```
+]
+
+.pull-right[
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+posterior_samples(Model3_CJ) %>%
+  select(
+    sigma,
+    sd_Partic__Intercept
+  ) %>%
+  model_parameters(
+    ) %>%
+  plot(show_labels = TRUE, 
+       size_text = 3)
+```
+]
+
+---
+
+## Make plot for random effects
+
+We can also make plots for all mu_j's (aka: the specific residuals for each participant)
+
+.pull-left[
+
+```{r, eval = FALSE}
+posterior_samples(Model3_CJ) %>%
+  select(
+    starts_with("r_Partic")
+    ) %>%
+  pivot_longer(
+    starts_with("r_Partic")
+    ) %>% 
+  mutate(
+    mu_j = value
+    ) %>%
+  ggplot(
+    aes(x = mu_j, y = reorder(name, mu_j))
+    ) +
+    stat_pointinterval(
+      point_interval = mean_qi,
+      .width = .89, 
+      size = 1/6
+      ) +
+  scale_y_discrete("")
+```
+
+]
+
+.pull-right[
+
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+posterior_samples(Model3_CJ) %>%
+  select(
+    starts_with("r_Partic")
+    ) %>%
+  pivot_longer(
+    starts_with("r_Partic")
+    ) %>% 
+  mutate(
+    mu_j = value
+    ) %>%
+  ggplot(
+    aes(x = mu_j, y = reorder(name, mu_j))
+    ) +
+    stat_pointinterval(
+      point_interval = mean_qi,
+      .width = .89, 
+      size = 1/6
+      ) +
+  scale_y_discrete("")
+```
+
+]
+
+---
+
+## Make plot for random effects
+
+Remember! We can simply calculate with the posterior! So, we can rescale the mu_j's back to seconds...
+
+.pull-left[
+
+```{r, eval = FALSE}
+posterior_samples(Model3_CJ) %>%
+  select(
+    starts_with("r_Partic")
+    ) %>%
+  pivot_longer(
+    starts_with("r_Partic")
+    ) %>% 
+  mutate(
+*   mu_j = exp(value)
+    ) %>%
+  ggplot(
+    aes(x = mu_j, y = reorder(name, mu_j))
+    ) +
+    stat_pointinterval(
+      point_interval = mean_qi,
+      .width = .89, 
+      size = 1/6
+      ) +
+  scale_y_discrete("")
+```
+
+]
+
+.pull-right[
+
+```{r, echo = FALSE, fig.width = 6, fig.height = 6}
+posterior_samples(Model3_CJ) %>%
+  select(
+    starts_with("r_Partic")
+    ) %>%
+  pivot_longer(
+    starts_with("r_Partic")
+    ) %>% 
+  mutate(
+    mu_j = exp(value)
+    ) %>%
+  ggplot(
+    aes(x = mu_j, y = reorder(name, mu_j))
+    ) +
+    stat_pointinterval(
+      point_interval = mean_qi,
+      .width = .89, 
+      size = 1/6
+      ) +
+  scale_y_discrete("")
+```
+
+]
+
+---
+
+## Another great package `sjPlots`
+
+.pull-left[
+
+```{r, eval = FALSE}
+library(sjPlot)
+tab_model(Model3_CJ)
+```
+
+
+]
+.pull-right[
+```{r, echo = FALSE}
+library(sjPlot)
+tab_model(Model3_CJ)
+```
+
+]
 ---
 
 - how to tweak the estimation:
@@ -1773,6 +2392,47 @@ class: inverse-blue, center, middle
 ## Some references & appendices 
 
 .footnote[[<i> get me back to the topic slide</i>](#topicslide)]
+---
+
+## Some books
+
+```{r, out.height = "90%", out.width="90%", echo = FALSE}
+knitr::include_graphics("cover_Lambert.jpg")
+```
+
+
+---
+
+## Some books
+
+```{r, out.height = "90%", out.width="90%", echo = FALSE}
+knitr::include_graphics("cover_rethinking2.jpg")
+```
+
+---
+
+## Some free online books
+
+- Bayes Rules!:
+
+https://www.bayesrulesbook.com/
+
+
+- Last Friday I learned about this book:
+
+https://vasishth.github.io/bayescogsci/book/
+
+---
+
+## THE Podcast
+
+.center2[
+If you like running - like I do - this could be a great companion on your run!
+
+https://www.learnbayesstats.com/
+
+]
+
 ---
 class: center, middle
 name: tweet_dplyr
