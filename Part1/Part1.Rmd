@@ -1034,6 +1034,10 @@ $$
 In `brms` this model is:
 
 ```{r echo = TRUE, eval = FALSE}
+RT <- c(
+  52, 54, 58, 48, 41, 49, 72, 53, 64, 62
+  )
+
 # First make a dataset from our RT vector
 DataRT <- data_frame(RT)
 
@@ -1046,7 +1050,7 @@ Mod_RT1 <- brm(
 ```
 
 .UA-red[<b>
-.Large[🏃]  Try it yourself and run the model ...
+.Large[🏃]  Try it yourself and run the model ... (don't forget to load the necessary packages: `brms` & `tidyverse`)
 </b>
 ]
 ]
