@@ -82,6 +82,7 @@ library(sjPlot)
 library(RColorBrewer)
 library(here)
 ```
+
 ---
 background-image: url(despicable_me2.jpeg)
 background-size: contain
@@ -171,7 +172,7 @@ name: aims
 
 On Github there is a dedicated repository where you'll find:
 
-- the Rmarkdown filefor the slides
+- the Rmarkdown file for the slides
 
 - saved models from the slides (some take too long to estimate 'live')
 
@@ -201,19 +202,19 @@ Please ask questions and interfere! Just give a shout!
 
 Stuck with some exercises? 
 
-$\rightarrow$ Share your screen and we will try to help
+$\rightarrow$ Share your screen and I will try to help
 
 ---
 ##Your own data
 
 Day 2: 
-
+.center2[
 - some dedicated time to apply stuff to your own data
 - be prepared:
   - think about some (simple) models (and possible priors...)
   - prepare your data  to avoid a lot of data issues on day 2
   - for the brave: try some modelling at home before day 2
-
+]
 ---
 name: Prerequisites
 
@@ -717,16 +718,17 @@ Vague2 <- dunif(
   max = 180
 )
 
+
 data_frame(X, Vague1, Vague2) %>%
   pivot_longer(c(Vague1, Vague2)) %>%
   rename(Prior = name) %>%
-  ggplot(aes(x = X, y = value ,color = Prior)) + 
+  ggplot(aes(x = X, y = value, lty = Prior)) + 
     geom_line() +
-    theme_light() +
-    theme(legend.position = "top") +
     labs(
-      x = expression(mu)
-    )
+      x = expression(mu),
+      y = "density"
+    ) +
+  theme_linedraw()
 
 ```
 
@@ -980,8 +982,9 @@ Model <- lmer(
   y ~ x1 + x2 + (1|Group),
   data = Data,
 
-  ...
   
+  
+  ...
 )
 ```
 ]
@@ -1380,9 +1383,10 @@ Convergence is clearly ok!
 ```{r, fig.width=6, fig.height=6 }
 plot(Model1_CJ)
 ```
+
 ---
 
-## Further exploration of hte posterior
+## Further exploration of the posterior
 
 Pull the 4000 samples of our parameter values from the posterior with
 
@@ -1398,7 +1402,7 @@ posterior_samples(Model1_CJ) %>%
 ---
 
 ## Time to unpack the plotting power of `ggplot2`
-
+.center2[
 First we set a custom theme that makes our plots look 'better'
 
 
@@ -1407,7 +1411,7 @@ theme_set(theme_linedraw() +
             theme(text = element_text(family = "Times"),
                   panel.grid = element_blank()))
 ```
-
+]
 
 ---
 ## Time to unpack the plotting power of `ggplot2`
@@ -1702,10 +1706,12 @@ posterior_samples(Model1_CJ) %>%
   xlab("marginal posterior") +
   facet_wrap(~name, scales = "free")
 ```
+
 ]
 ]
 
 .pull-right[
+
 ```{r echo = F, eval = T, fig.with = 6, fig.height = 6}
 names <- c("mu_log_scale","mu_sec", "sigma")
 
@@ -1723,13 +1729,14 @@ posterior_samples(Model1_CJ) %>%
   xlab("marginal posterior") +
   facet_wrap(~name, scales = "free")
 ```
+
 ]
 
 ---
 
 ## Question 2
 
-.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+.UA-red[<i><b> Does the time that people spend reading a text differs for both texts if we control for the length of the text? </i></b>]
 
 A model could look like:
 
@@ -1760,6 +1767,7 @@ head(Data_CJ2, 6)
 </b>
 ]
 ]
+
 ---
 
 ## Solution
@@ -2122,7 +2130,7 @@ equivalence_test(Model2_CJ) %>%
 
 ## Question 3
 
-.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+.UA-red[<i><b> Does the time that people spend reading a text differs for both texts if we control for the length of the text? </i></b>]
 
 
 In the previous analyses we neglected that we have multiple observations per person!
@@ -2421,13 +2429,14 @@ Model3_CJ <- brm(
 ]
 
 Modern computers have multiple cores $\rightarrow$ let them work simultaneously
+
 ---
 
 ## Question 4
 
 <i> Hey! It's still the same question! </i>
 
-.UA-red[<i><b> Does the time that people spend reading a text differ for both texts if we control for the length of the text? </i></b>]
+.UA-red[<i><b> Does the time that people spend reading a text differs for both texts if we control for the length of the text? </i></b>]
 
 
 In the previous analyses we neglected that we have multiple observations per pair of texts!
@@ -2500,11 +2509,11 @@ pp_check(Model4_CJ)
 
 ---
 
-## Mmodel comparison with loo cross-validation
+## Model comparison with loo cross-validation
 
 $\sim$ AIC or BIC in Frequentist statistics
 
-.small[
+.footnotesize[
 ```{r}
 loo_Model2 <- loo(Model2_CJ)
 loo_Model3 <- loo(Model3_CJ)
@@ -2519,6 +2528,273 @@ print(Comparison, simplify = F)
 ```
 
 ]
+
+---
+
+## What about setting your own priors?
+
+`brms` has some default priors programmed (Uninformative priors)!
+
+But: .UA-red[WAMBS] (when to <b>W</b>orry and how to <b>A</b>void <b>M</b>isuse of <b>B</b>ayesian <b>S</b>tatistics) (Rens van de Schoot et al. (2021))
+
+
+<i> .SW-greenD[
+
+> "Ensure the prior distributions and the model or likelihood are well understood and described in detail in the text. Prior-predictive checking can help identify any prior-data conflict"
+
+] 
+
+---
+
+## What about setting your own priors?
+
+Let's first see how to get to know which priors are set by `brms` in the model we defined.
+
+`get_prior()` function
+
+.footnotesize[
+```{r}
+get_prior(  
+  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic) + (1|Compar),
+  data = Data_CJ2,
+  family = "gaussian")
+```
+]
+
+---
+
+## Visualise priors
+
+Imagine you want to visualise the prior for the `Intercept` & also visualise an alternative prior: $N(6,2)$
+
+.pull-left[
+.footnotesize[
+
+```{r, eval = FALSE}
+library(metRology) # to use dt.scaled()
+
+# Create a vector with possible Dur_log values
+# and call this vector x
+x <- seq(1,20,by=.1) 
+
+# probability density for our own prior
+# saved in the vector custom
+custom       <- dnorm(x,6,2)
+
+# probability density for brms prior
+# saved in the vector brms_default
+brms_default <- dt.scaled(x,3,7.5,2.5)
+
+# Plot both
+data_frame(x,custom,brms_default) %>%
+  pivot_longer(
+    c(custom,brms_default),
+    names_to = "Prior") %>%
+  ggplot(
+    aes(x = x, 
+        y = value, lty = Prior)) + 
+  geom_line() + 
+  scale_x_continuous(
+    "Dur_log",limits = c(1,20)) +
+  scale_y_continuous(
+    "probability density")
+```
+
+]
+
+]
+
+.pull-right[
+
+```{r echo = FALSE, fig.width = 6, fig.height = 6}
+library(metRology) # to use dt.scaled()
+
+x <- seq(1,20,by=.1)
+custom       <- dnorm(x,6,2)
+brms_default <- dt.scaled(x,3,7.5,2.5)
+
+data_frame(x,custom,brms_default) %>%
+  pivot_longer(c(custom,brms_default),names_to="Prior") %>%
+  ggplot(aes(x = x, y = value, lty = Prior)) + 
+  geom_line() + 
+  scale_x_continuous("Dur_log",limits = c(1,20)) +
+  scale_y_continuous("probability density")
+```
+
+]
+
+---
+
+## Change priors in `brms`
+
+We use `set_prior()` to define priors and `prior = ... ` in the `brm()` part
+
+.footnotesize[
+```{r, eval = F}
+# Create an object with the definition of the priors you want to define manually
+
+priors_M4 <- c(
+  set_prior("normal(6,2)", class = "Intercept"))
+
+Model4b_CJ <- brm(
+  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic) + (1|Compar),
+  data = Data_CJ2,
+  family = "gaussian",
+  backend = "cmdstanr",
+* prior = priors_M4,
+  cores = 4,
+  seed = 1975
+)
+```
+]
+
+if we want to add other manually defined priors as well, we can by doing something like:
+
+.footnotesize[
+```{r, eval = FALSE}
+priors_Manually <- c(
+  set_prior("normal(6,2)", class = "Intercept"),
+  set_prior("normal(0,3)", class = "b", coef = "Right_Text"),
+  ...
+)
+```
+]
+
+---
+
+## Let's think about the effects we expect
+
+Bürkner: 
+
+.SW-greenD[
+<i>
+> The default prior for population-level effects (including monotonic and category specific effects) is an improper flat prior over the reals.
+</i>
+https://rdrr.io/cran/brms/man/set_prior.html
+]
+
+If you know that sd for `Dur_Log` equals 1.22, what could be a good prior (not to informative) for the effect of:
+
+- `Text_Length`
+
+- `Right_Text`
+
+---
+
+## Some possibilities
+
+Option 1: $N(0,2)$ or Option 2: $N(0,4)$
+
+.pull-left[
+.footnotesize[
+
+```{r, eval = FALSE}
+x <- seq(-8,8,by=.1) 
+
+# probability densities for both
+option1 <- dnorm(x,0,2)
+option2 <- dnorm(x,0,4)
+
+# Plot both
+data_frame(x, option1, option2) %>%
+  pivot_longer(
+    c(option1, option2),
+    names_to = "Prior") %>%
+  ggplot(
+    aes(x = x, 
+        y = value, lty = Prior)) + 
+  geom_line() + 
+  scale_x_continuous(
+    "Dur_log",limits = c(-8,8)) +
+  scale_y_continuous(
+    "probability density")
+```
+
+]
+
+]
+
+.pull-right[
+
+```{r echo = FALSE, fig.width = 6, fig.height = 6}
+x <- seq(-8,8,by=.1) 
+
+# probability densities for both
+option1 <- dnorm(x,0,2)
+option2 <- dnorm(x,0,4)
+
+# Plot both
+data_frame(x, option1, option2) %>%
+  pivot_longer(
+    c(option1, option2),
+    names_to = "Prior") %>%
+  ggplot(
+    aes(x = x, 
+        y = value, lty = Prior)) + 
+  geom_line() + 
+  scale_x_continuous(
+    "Dur_log",limits = c(-8,8)) +
+  scale_y_continuous(
+    "probability density")
+```
+
+]
+
+---
+
+## Your turn! 
+
+.UA-red[<b>
+.left-column[.Super[🏃]  ]
+
+- Re-estimate the model 4 with a custom prior for both regression effects
+- Use `tab_model()` to summarize both models: this model and the model with the `brms` default priors
+- Big changes?
+</b>
+]
+
+Remember:
+![](https://media.giphy.com/media/A9grgCQ0Dm012/giphy.gif)
+
+
+---
+
+## Possible solution
+
+```{r, eval = F}
+
+# Set the priors
+
+priors_M4b <- c(
+  set_prior("normal(0,2)", class = "b", coef = "Right_Text"),
+  set_prior("normal(0,2)", class = "b", coef = "Text_Length")
+)
+
+# Estimate the model
+Model4b_CJ <- brm(
+  Dur_Log ~ 1 + Text_Length + Right_Text + (1|Partic) + (1|Compar),
+  data = Data_CJ2,
+  family = "gaussian",
+  prior = priors_M4b,
+  backend = "cmdstanr",
+  cores = 4,
+  seed = 1975
+)
+
+# Summarize both models side by side
+tab_model(Model4_CJ, Model4b_CJ)
+
+```
+
+---
+
+## Possible solution
+
+```{r, echo = FALSE}
+Model4b_CJ <- readRDS(here("models", "Model4b_CJ.RDS"))
+tab_model(Model4_CJ, Model4b_CJ)
+```
+
 
 ---
 class: inverse-blue, center, middle
@@ -2554,6 +2830,17 @@ https://www.bayesrulesbook.com/
 - Last Friday I learned about this book:
 
 https://vasishth.github.io/bayescogsci/book/
+
+
+---
+
+## Rens van de Schoot
+
+In <i>Nature Reviews</i>
+
+```{r, out.height = "90%", out.width="90%", echo = FALSE}
+knitr::include_graphics("Rens_NatureReviews.jpg")
+```
 
 ---
 
@@ -2599,7 +2886,7 @@ background-size: contain
 
 # Questions?
 
-Do not hesitate to contact us!
+Do not hesitate to contact me!
 
 
 sven.demaeyer@uantwerpen.be
