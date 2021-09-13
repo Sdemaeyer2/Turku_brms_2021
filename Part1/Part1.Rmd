@@ -2795,6 +2795,23 @@ Model4b_CJ <- readRDS(here("models", "Model4b_CJ.RDS"))
 tab_model(Model4_CJ, Model4b_CJ)
 ```
 
+---
+
+## To wrap-up: why `brms` ?
+
+- .UA-red[`brms`] is more versatile than `lme4` allowing also to estimate
+
+  - multivariate models
+
+  - finite mixture models
+
+  - generalized mixed effects models
+
+  - splines
+
+  - ...
+
+- .UA-red[`brms`] as stepping-stone to learn `Stan`
 
 ---
 class: inverse-blue, center, middle
