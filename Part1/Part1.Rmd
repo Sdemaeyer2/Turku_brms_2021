@@ -1426,7 +1426,7 @@ Package .UA-red[`tidybayes`] is a wrapper including functions from .UA-red[`ggdi
 .footnotesize[
 
 ```{r echo = T, eval = F}
-posterior_samples(Mode1l_CJ) %>%         # Get draws of the posterior
+posterior_samples(Model1_CJ) %>%         # Get draws of the posterior
   select(b_Intercept) %>%                # Only select our Intercept
   pivot_longer(everything()) %>%         # Rearrange the result to plot
   ggplot(aes(x = value, y = name)) +     # Let's plot...
@@ -1872,9 +1872,9 @@ posterior_samples(Model2_CJ) %>%
 ```{r, eval = FALSE}
 mcmc_areas(
   Model2_CJ,
-  pars = c("b_Intercept", 
-           "b_Text_Length",
-           "b_Right_Text"),
+  pars = c("b_Text_Length",
+           "b_Right_Text"
+           ),
   prob = 0.89
 )
 ```
@@ -1905,7 +1905,8 @@ mcmc_areas(
 mcmc_areas_ridges(
   Model2_CJ,
   pars = c("b_Text_Length",
-           "b_Right_Text"),
+           "b_Right_Text"
+           ),
   prob = 0.89
 )
 ```
@@ -1918,8 +1919,7 @@ mcmc_areas_ridges(
 ```{r echo = FALSE, fig.width = 6, fig.height=6}
 mcmc_areas_ridges(
   Model2_CJ,
-  pars = c("b_Intercept", 
-           "b_Text_Length",
+  pars = c("b_Text_Length",
            "b_Right_Text"),
   prob = 0.89
 )
@@ -1940,7 +1940,7 @@ mcmc_intervals(
   Model2_CJ,
   pars = c("b_Text_Length",
            "b_Right_Text"),
-  prob = 0.89
+  prob = c(0.5, 0.89, 0.95)
 )
 ```
 
@@ -1955,7 +1955,7 @@ mcmc_intervals(
   Model2_CJ,
   pars = c("b_Text_Length",
            "b_Right_Text"),
-  prob = 0.89
+  prob = c(0.5, 0.89, 0.95)
 )
 ```
 
@@ -2308,10 +2308,10 @@ posterior_samples(Model3_CJ) %>%
 
 ## Make plot for random effects
 
-Remember! We can simply calculate with the posterior! So, we can rescale the mu_j's back to seconds...
+Remember! We can simply calculate with the posterior! So, we can plot the differences between our participants by using mu_j and the Intercept estimate (6.63). Sum them together and take the `exp()`
 
 .pull-left[
-
+.small[
 ```{r, eval = FALSE}
 posterior_samples(Model3_CJ) %>%
   select(
@@ -2321,7 +2321,7 @@ posterior_samples(Model3_CJ) %>%
     starts_with("r_Partic")
     ) %>% 
   mutate(
-*   mu_j = exp(value)
+*   mu_j = exp(6.63 + value)
     ) %>%
   ggplot(
     aes(x = mu_j, y = reorder(name, mu_j))
@@ -2331,9 +2331,10 @@ posterior_samples(Model3_CJ) %>%
       .width = .89, 
       size = 1/6
       ) +
-  scale_y_discrete("")
+  scale_y_discrete("") +
+  scale_x_continuous("Reading time (in seconds)")
 ```
-
+]
 ]
 
 .pull-right[
@@ -2347,7 +2348,7 @@ posterior_samples(Model3_CJ) %>%
     starts_with("r_Partic")
     ) %>% 
   mutate(
-    mu_j = exp(value)
+    mu_j = exp(6.63 + value)
     ) %>%
   ggplot(
     aes(x = mu_j, y = reorder(name, mu_j))
@@ -2357,7 +2358,8 @@ posterior_samples(Model3_CJ) %>%
       .width = .89, 
       size = 1/6
       ) +
-  scale_y_discrete("")
+  scale_y_discrete("") +
+  scale_x_continuous("Reading time (in seconds)")
 ```
 
 ]
@@ -2516,6 +2518,8 @@ pp_check(Model4_CJ)
 ## Model comparison with loo cross-validation
 
 $\sim$ AIC or BIC in Frequentist statistics
+
+$\widehat{elpd}$: "expected log predictive density" (higher $\widehat{elpd}$ implies better model fit without being sensitive for overfitting!)
 
 .footnotesize[
 ```{r}
@@ -2799,6 +2803,23 @@ Model4b_CJ <- readRDS(here("models", "Model4b_CJ.RDS"))
 tab_model(Model4_CJ, Model4b_CJ)
 ```
 
+---
+
+## Where to get help?
+
+Now that you're ready to set your steps in .SW-greenD[Bayesian Mixed Effects Models] there is a high probability that this will happen sometime:
+
+
+.pull-left[
+```{r, out.height = "99%", out.width="99%", echo = FALSE}
+knitr::include_graphics("computer-says-no.jpeg")
+```
+]
+
+.pull-right[
+This is a great source to learn more about `Stan`; `brms` & `Hamiltonian MCMC`:
+
+https://discourse.mc-stan.org/t/divergent-transitions-a-primer/17099]
 ---
 
 ## To wrap-up: why `brms` ?
